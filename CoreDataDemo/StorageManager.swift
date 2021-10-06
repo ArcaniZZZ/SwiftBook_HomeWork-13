@@ -58,17 +58,14 @@ class StorageManager {
         guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return nil }
         guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return nil }
         task.title = taskName
-        saveContext()
         return task
     }
     
     func delete(_ task: Task) {
         context.delete(task)
-        saveContext()
     }
     
     func edit(changeTitleOf task: Task, to newTitle: String) {
         task.title = newTitle
-        saveContext()
     }
 }

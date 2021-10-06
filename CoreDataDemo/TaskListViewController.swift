@@ -15,6 +15,7 @@ class TaskListViewController: UITableViewController {
     private let cellID = "task"
     private var taskList: [Task] = []
     
+    // MARK: - Overriden Methods
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
@@ -23,6 +24,7 @@ class TaskListViewController: UITableViewController {
         taskList = storageManager.fetchData()
     }
     
+    // MARK: - Private Methods
     private func setupNavigationBar() {
         title = "Task List"
         navigationController?.navigationBar.prefersLargeTitles = true
@@ -63,6 +65,8 @@ class TaskListViewController: UITableViewController {
     }
 }
 
+// MARK: - Extensions
+
 // MARK: - Alert Controllers
 extension TaskListViewController {
     private func showAddTaskAlert(with title: String, and message: String) {
@@ -82,7 +86,12 @@ extension TaskListViewController {
         present(alert, animated: true)
     }
     
-    private func showEditTaskAlert(with title: String, and message: String, for task: Task, at indexPath: IndexPath) {
+    private func showEditTaskAlert(
+        with title: String,
+        and message: String,
+        for task: Task,
+        at indexPath: IndexPath
+    ) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let editAction = UIAlertAction(title: "Edit", style: .default) { _ in
             guard let newTaskTitle = alert.textFields?.first?.text, !newTaskTitle.isEmpty else { return }
@@ -136,7 +145,12 @@ extension TaskListViewController {
         _ tableView: UITableView,
         didSelectRowAt indexPath: IndexPath) {
             let task = taskList[indexPath.row]
-            showEditTaskAlert(with: "Edit Task", and: "Change existing task", for: task, at: indexPath)
+            showEditTaskAlert(
+                with: "Edit Task",
+                and: "Change existing task",
+                for: task,
+                at: indexPath
+            )
             tableView.deselectRow(at: indexPath, animated: true)
         }
 }
