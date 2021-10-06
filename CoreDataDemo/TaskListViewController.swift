@@ -22,7 +22,7 @@ class TaskListViewController: UITableViewController {
         view.backgroundColor = .white
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
-        fetchData()
+        StorageManager.shared.fetchData(to: &taskList)
     }
     
     private func setupNavigationBar() {
@@ -56,57 +56,15 @@ class TaskListViewController: UITableViewController {
         showAddTaskAlert(with: "New Task", and: "What do you want to do?")
     }
     
-    private func fetchData() {
-        let fetchRequest = Task.fetchRequest()
-        
-        do {
-            taskList = try context.fetch(fetchRequest)
-        } catch let error {
-            print("Failed to fetch data", error)
-        }
-    }
-    
-    private func save(_ taskName: String) {
-        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
-        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
-        task.title = taskName
-        taskList.append(task)
-        
-        let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
-        tableView.insertRows(at: [cellIndex], with: .automatic)
-        
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error)
-            }
-        }
-    }
-    
-    private func delete(_ task: Task) {
-        context.delete(task)
-        
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error)
-            }
-        }
-    }
-    
-    private func edit(_ task: Task, change newTitle: String) {
-        task.title = newTitle
-        
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error)
-            }
-        }
-    }
+//    private func fetchData() {
+//        let fetchRequest = Task.fetchRequest()
+//
+//        do {
+//            taskList = try context.fetch(fetchRequest)
+//        } catch let error {
+//            print("Failed to fetch data", error)
+//        }
+//    }
 }
 
 // MARK: - Alert Controllers
@@ -115,7 +73,7 @@ extension TaskListViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            self.save(task)
+            StorageManager.shared.save(task, in: &self.taskList, for: self.tableView)
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
         alert.addAction(saveAction)
@@ -130,7 +88,7 @@ extension TaskListViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let editAction = UIAlertAction(title: "Edit", style: .default) { _ in
             guard let newTask = alert.textFields?.first?.text, !newTask.isEmpty else { return }
-            self.edit(task, change: newTask)
+            StorageManager.shared.edit(task, setNewTitle: newTask)
             let indexPaths = [indexPath]
             self.tableView.reloadRows(at: indexPaths, with: .automatic)
         }
@@ -173,7 +131,7 @@ extension TaskListViewController {
         taskList.remove(at: indexPath.row)
         let indexPaths = [indexPath]
         tableView.deleteRows(at: indexPaths, with: .automatic)
-        delete(taskToRemove)
+        StorageManager.shared.delete(taskToRemove)
     }
     
     override func tableView(
@@ -181,16 +139,14 @@ extension TaskListViewController {
         didSelectRowAt indexPath: IndexPath) {
             let task = taskList[indexPath.row]
             showEditTaskAlert(with: "Edit Task", and: "Change existing task", for: task, at: indexPath)
-            let indexPaths = [indexPath]
-            tableView.reloadRows(at: indexPaths, with: .automatic)
             tableView.deselectRow(at: indexPath, animated: true)
         }
 }
 
-// MARK: - TaskViewControllerDelegate
-extension TaskListViewController: TaskViewControllerDelegate {
-    func reloadData() {
-        fetchData()
-        tableView.reloadData()
-    }
-}
+//// MARK: - TaskViewControllerDelegate
+//extension TaskListViewController: TaskViewControllerDelegate {
+//    func reloadData() {
+//        fetchData()
+//        tableView.reloadData()
+//    }
+//}
