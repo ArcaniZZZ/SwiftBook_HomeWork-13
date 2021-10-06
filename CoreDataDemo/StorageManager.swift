@@ -6,15 +6,14 @@
 //
 
 import CoreData
-import UIKit
 
 class StorageManager {
+    
+    // MARK: - Public Properties
     static let shared = StorageManager()
     
-    lazy private var context = persistentContainer.viewContext
-    
     // MARK: - Core Data stack
-    var persistentContainer: NSPersistentContainer = {
+    private var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "CoreDataDemo")
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
@@ -24,9 +23,15 @@ class StorageManager {
         return container
     }()
     
+    var context: NSManagedObjectContext
+    
+    // MARK: - Initializers
+    private init() {
+        context = persistentContainer.viewContext
+    }
+    
     // MARK: - Core Data Saving support
     func saveContext() {
-        let context = persistentContainer.viewContext
         if context.hasChanges {
             do {
                 try context.save()
@@ -37,52 +42,33 @@ class StorageManager {
         }
     }
     
-    func fetchData(to taskList: inout [Task]) {
+    // MARK: - Public Methods
+    func fetchData() -> [Task] {
         let fetchRequest = Task.fetchRequest()
-        
+        var taskList: [Task] = []
         do {
             taskList = try context.fetch(fetchRequest)
         } catch let error {
             print("Failed to fetch data", error)
         }
+        return taskList
     }
     
-    func save(_ taskName: String, in taskList: inout [Task], for tableView: UITableView) {
-        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
-        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
+    func save(_ taskName: String) -> Task? {
+        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return nil }
+        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return nil }
         task.title = taskName
-        taskList.append(task)
-        
-        let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
-        tableView.insertRows(at: [cellIndex], with: .automatic)
-        
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error)
-            }
-        }
+        saveContext()
+        return task
     }
     
     func delete(_ task: Task) {
         context.delete(task)
-        updateEntity()
+        saveContext()
     }
     
-    func edit(_ task: Task, setNewTitle newTitle: String) {
+    func edit(changeTitleOf task: Task, to newTitle: String) {
         task.title = newTitle
-        updateEntity()
+        saveContext()
     }
-    
-    func updateEntity() {
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error)
-            }
-        }
-    }
-    private init() {}
 }

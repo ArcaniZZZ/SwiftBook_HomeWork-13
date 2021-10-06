@@ -8,12 +8,10 @@
 import UIKit
 import CoreData
 
-protocol TaskViewControllerDelegate {
-    func reloadData()
-}
-
 class TaskListViewController: UITableViewController {
-    private let context = StorageManager.shared.persistentContainer.viewContext
+    
+    // MARK: - Private Properties
+    private let storageManager = StorageManager.shared
     private let cellID = "task"
     private var taskList: [Task] = []
     
@@ -22,7 +20,7 @@ class TaskListViewController: UITableViewController {
         view.backgroundColor = .white
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
-        StorageManager.shared.fetchData(to: &taskList)
+        taskList = storageManager.fetchData()
     }
     
     private func setupNavigationBar() {
@@ -56,15 +54,13 @@ class TaskListViewController: UITableViewController {
         showAddTaskAlert(with: "New Task", and: "What do you want to do?")
     }
     
-//    private func fetchData() {
-//        let fetchRequest = Task.fetchRequest()
-//
-//        do {
-//            taskList = try context.fetch(fetchRequest)
-//        } catch let error {
-//            print("Failed to fetch data", error)
-//        }
-//    }
+    private func save(task: String) {
+        guard let newTask = storageManager.save(task) else { return }
+        taskList.append(newTask)
+        
+        let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
+        tableView.insertRows(at: [cellIndex], with: .automatic)
+    }
 }
 
 // MARK: - Alert Controllers
@@ -73,26 +69,29 @@ extension TaskListViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            StorageManager.shared.save(task, in: &self.taskList, for: self.tableView)
+            self.save(task: task)
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        
         alert.addAction(saveAction)
         alert.addAction(cancelAction)
         alert.addTextField { textField in
             textField.placeholder = "New Task"
         }
+        
         present(alert, animated: true)
     }
     
     private func showEditTaskAlert(with title: String, and message: String, for task: Task, at indexPath: IndexPath) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let editAction = UIAlertAction(title: "Edit", style: .default) { _ in
-            guard let newTask = alert.textFields?.first?.text, !newTask.isEmpty else { return }
-            StorageManager.shared.edit(task, setNewTitle: newTask)
+            guard let newTaskTitle = alert.textFields?.first?.text, !newTaskTitle.isEmpty else { return }
+            self.storageManager.edit(changeTitleOf: task, to: newTaskTitle)
             let indexPaths = [indexPath]
             self.tableView.reloadRows(at: indexPaths, with: .automatic)
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        
         alert.addAction(editAction)
         alert.addAction(cancelAction)
         alert.addTextField { textField in
@@ -102,7 +101,6 @@ extension TaskListViewController {
         present(alert, animated: true)
     }
 }
-
 
 // MARK: - UITableViewDataSource
 extension TaskListViewController {
@@ -131,7 +129,7 @@ extension TaskListViewController {
         taskList.remove(at: indexPath.row)
         let indexPaths = [indexPath]
         tableView.deleteRows(at: indexPaths, with: .automatic)
-        StorageManager.shared.delete(taskToRemove)
+        self.storageManager.delete(taskToRemove)
     }
     
     override func tableView(
@@ -142,11 +140,3 @@ extension TaskListViewController {
             tableView.deselectRow(at: indexPath, animated: true)
         }
 }
-
-//// MARK: - TaskViewControllerDelegate
-//extension TaskListViewController: TaskViewControllerDelegate {
-//    func reloadData() {
-//        fetchData()
-//        tableView.reloadData()
-//    }
-//}
